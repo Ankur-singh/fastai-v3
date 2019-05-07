@@ -39,6 +39,7 @@ app.mount('/static', StaticFiles(directory='app/static'))
 import requests
 
 def download_file_from_google_drive(id, destination):
+    if destination.exists(): return
     URL = "https://docs.google.com/uc?export=download"
 
     session = requests.Session()
