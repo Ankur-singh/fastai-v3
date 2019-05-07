@@ -48,6 +48,8 @@ def download_file_from_google_drive(id, destination):
         params= {'id':id, 'confirm': token}
         response = session.get(URL, params= params, stream=True)
 
+    save_response_content(response, destination)
+
 def get_confirm_token(response):
     for key, value in response.cookies.items():
         if key.startswith('download_warning'):
