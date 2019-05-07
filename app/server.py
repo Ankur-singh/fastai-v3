@@ -12,6 +12,7 @@ from fastai.vision import *
 # export_file_name = 'export.pkl'
 
 export_file_url = 'https://drive.google.com/file/d/1b9LyUGaGazjlDS4ysEiMQJwdiHG98pAK/view?usp=sharing'
+file_id = '1b9LyUGaGazjlDS4ysEiMQJwdiHG98pAK'
 export_file_name = 'final.pkl'
 
 # classes = ['black', 'grizzly', 'teddys']
@@ -35,7 +36,54 @@ app = Starlette()
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_headers=['X-Requested-With', 'Content-Type'])
 app.mount('/static', StaticFiles(directory='app/static'))
 
-async def download_file(url, dest):
+import requests
+
+def download_file_from_google_drive(id, destination):
+    URL = "https://docs.google.com/uc?export=download"
+
+    session = requests.Session()
+
+    response = session.get(URL, params = { 'id' : id }, stream = True)
+    token = get_confirm_token(response)
+
+    if token:
+        params = { 'id' : id, 'confirm' : token }
+        response = session.get(URL, params = params, stream = True)
+
+    save_response_content(response, destination)    
+
+def get_confirm_token(response):
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            return value
+
+    return None
+
+def save_response_content(response, destination):
+    CHUNK_SIZE = 32768
+
+    with open(destination, "wb") as f:
+        for chunk in response.iter_content(CHUNK_SIZE):
+            if chunk: # filter out keep-alive new chunks
+                f.write(chunk)
+
+def setup_learner():
+    # file_id = '1b9LyUGaGazjlDS4ysEiMQJwdiHG98pAK'
+    # destination = 'final.pkl'
+    download_file_from_google_drive(file_id, export_file_name)
+    try:
+        learn = load_learner(path, export_file_name)
+        return learn
+    except RuntimeError as e:
+        if len(e.args) > 0 and 'CPU-only machine' in e.args[0]:
+            print(e)
+            message = "\n\nThis model was trained with an old version of fastai and will not work in a CPU environment.\n\nPlease update the fastai library in your training environment and export your model again.\n\nSee instructions for 'Returning to work' at https://course.fast.ai."
+            raise RuntimeError(message)
+        else:
+            raise
+
+
+"""async def download_file(url, dest):
     if dest.exists(): return
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -59,7 +107,7 @@ loop = asyncio.get_event_loop()
 tasks = [asyncio.ensure_future(setup_learner())]
 learn = loop.run_until_complete(asyncio.gather(*tasks))[0]
 loop.close()
-
+"""
 @app.route('/')
 def index(request):
     html = path/'view'/'index.html'
