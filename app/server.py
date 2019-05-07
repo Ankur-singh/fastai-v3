@@ -33,18 +33,18 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_headers=['X-Reques
 app.mount('/static', StaticFiles(directory='app/static'))
 
 
-async def download_file_from_google_drive(id, destination):
+def download_file_from_google_drive(id, destination):
     if destination.exists(): return
     URL = "https://docs.google.com/uc?export=download"
 
     session = requests.Session()
 
-    response = await session.get(URL, params = { 'id' : id }, stream = True)
+    response = session.get(URL, params = { 'id' : id }, stream = True)
     token = get_confirm_token(response)
 
     if token:
         params = { 'id' : id, 'confirm' : token }
-        response = await session.get(URL, params = params, stream = True)
+        response = session.get(URL, params = params, stream = True)
 
     save_response_content(response, destination)    
 
@@ -61,8 +61,8 @@ def save_response_content(response, destination):
             if chunk: # filter out keep-alive new chunks
                 f.write(chunk)
 
-async def setup_learner():
-    await download_file_from_google_drive(file_id, path/export_file_name)
+def setup_learner():
+    download_file_from_google_drive(file_id, path/export_file_name)
     try:
         learn = load_learner(path, export_file_name)
         return learn
@@ -74,10 +74,7 @@ async def setup_learner():
         else:
             raise
 
-loop = asyncio.get_event_loop()
-tasks = [asyncio.ensure_future(setup_learner())]
-learn = loop.run_until_complete(asyncio.gather(*tasks))[0]
-loop.close()
+learn = setup_learner()
 
 @app.route('/')
 def index(request):
