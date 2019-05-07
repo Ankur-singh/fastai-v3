@@ -105,7 +105,6 @@ prometheus-client==0.5.0
 promise==2.2.1
 prompt-toolkit==2.0.7
 psutil==5.4.8
-psycopg2==2.8.2
 pyarrow==0.11.1
 pycparser==2.19
 Pygments==2.3.1
