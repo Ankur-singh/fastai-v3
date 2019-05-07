@@ -82,6 +82,8 @@ def setup_learner():
             raise RuntimeError(message)
         else:
             raise
+        
+learn = setup_learner()
 
 
 """async def download_file(url, dest):
