@@ -4,18 +4,14 @@ from starlette.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn, aiohttp, asyncio
 from io import BytesIO
+import requests
 
 from fastai import *
 from fastai.vision import *
 
-# export_file_url = 'https://www.dropbox.com/s/6bgq8t6yextloqp/export.pkl?raw=1'
-# export_file_name = 'export.pkl'
-
-export_file_url = 'https://drive.google.com/file/d/1b9LyUGaGazjlDS4ysEiMQJwdiHG98pAK/view?usp=sharing'
 file_id = '1b9LyUGaGazjlDS4ysEiMQJwdiHG98pAK'
 export_file_name = 'final.pkl'
 
-# classes = ['black', 'grizzly', 'teddys']
 classes = ['affenpinscher','afghan_hound', 'african_hunting_dog', 'airedale', 'american_staffordshire_terrier', 'appenzeller', 'australian_terrier',
  'basenji', 'basset', 'beagle', 'bedlington_terrier', 'bernese_mountain_dog', 'black-and-tan_coonhound', 'blenheim_spaniel', 'bloodhound', 'bluetick',
  'border_collie', 'border_terrier', 'borzoi', 'boston_bull', 'bouvier_des_flandres', 'boxer', 'brabancon_griffon', 'briard', 'brittany_spaniel', 'bull_mastiff', 
@@ -36,20 +32,19 @@ app = Starlette()
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_headers=['X-Requested-With', 'Content-Type'])
 app.mount('/static', StaticFiles(directory='app/static'))
 
-import requests
 
-def download_file_from_google_drive(id, destination):
+async def download_file_from_google_drive(id, destination):
     if destination.exists(): return
     URL = "https://docs.google.com/uc?export=download"
 
     session = requests.Session()
 
-    response = session.get(URL, params = { 'id' : id }, stream = True)
+    response = await session.get(URL, params = { 'id' : id }, stream = True)
     token = get_confirm_token(response)
 
     if token:
         params = { 'id' : id, 'confirm' : token }
-        response = session.get(URL, params = params, stream = True)
+        response = await session.get(URL, params = params, stream = True)
 
     save_response_content(response, destination)    
 
@@ -57,44 +52,17 @@ def get_confirm_token(response):
     for key, value in response.cookies.items():
         if key.startswith('download_warning'):
             return value
-
     return None
 
 def save_response_content(response, destination):
     CHUNK_SIZE = 32768
-
     with open(destination, "wb") as f:
         for chunk in response.iter_content(CHUNK_SIZE):
             if chunk: # filter out keep-alive new chunks
                 f.write(chunk)
 
-def setup_learner():
-    # file_id = '1b9LyUGaGazjlDS4ysEiMQJwdiHG98pAK'
-    # destination = 'final.pkl'
-    download_file_from_google_drive(file_id, path/export_file_name)
-    try:
-        learn = load_learner(path, export_file_name)
-        return learn
-    except RuntimeError as e:
-        if len(e.args) > 0 and 'CPU-only machine' in e.args[0]:
-            print(e)
-            message = "\n\nThis model was trained with an old version of fastai and will not work in a CPU environment.\n\nPlease update the fastai library in your training environment and export your model again.\n\nSee instructions for 'Returning to work' at https://course.fast.ai."
-            raise RuntimeError(message)
-        else:
-            raise
-        
-learn = setup_learner()
-
-
-"""async def download_file(url, dest):
-    if dest.exists(): return
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            data = await response.read()
-            with open(dest, 'wb') as f: f.write(data)
-
 async def setup_learner():
-    await download_file(export_file_url, path/export_file_name)
+    await download_file_from_google_drive(file_id, path/export_file_name)
     try:
         learn = load_learner(path, export_file_name)
         return learn
@@ -110,7 +78,7 @@ loop = asyncio.get_event_loop()
 tasks = [asyncio.ensure_future(setup_learner())]
 learn = loop.run_until_complete(asyncio.gather(*tasks))[0]
 loop.close()
-"""
+
 @app.route('/')
 def index(request):
     html = path/'view'/'index.html'
