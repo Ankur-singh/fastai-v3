@@ -37,8 +37,17 @@ def download_file_from_google_drive(id, destination):
     if destination.exists(): return
     URL = "https://docs.google.com/uc?export=download"
 
-    session = requests.Session()
+"""    async with aiohttp.ClientSession() as session:
+        async with session.get(URL, params = { 'id' : id }) as resp:
+            token = get_confirm_token(resp)
+            if token:
+                params = { 'id' : id, 'confirm' : token }
+                async with session.get(URL, params = params) as response:
+                    save_response_content(response, destination)
+"""
 
+    session = requests.Session()
+    
     response = session.get(URL, params = { 'id' : id }, stream = True)
     token = get_confirm_token(response)
 
@@ -47,6 +56,7 @@ def download_file_from_google_drive(id, destination):
         response = session.get(URL, params = params, stream = True)
 
     save_response_content(response, destination)    
+
 
 def get_confirm_token(response):
     for key, value in response.cookies.items():
