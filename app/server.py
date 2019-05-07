@@ -71,7 +71,7 @@ def save_response_content(response, destination):
 def setup_learner():
     # file_id = '1b9LyUGaGazjlDS4ysEiMQJwdiHG98pAK'
     # destination = 'final.pkl'
-    download_file_from_google_drive(file_id, export_file_name)
+    download_file_from_google_drive(file_id, path/export_file_name)
     try:
         learn = load_learner(path, export_file_name)
         return learn
